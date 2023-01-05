@@ -1,5 +1,6 @@
 # IW4_IWD_Generator
-##Very Early Access
+
+## Very Early Access
 - This branch does not have the ability to generate the IWD file itself, but will still tell you exactly where each texture is within the IWD files
 - There is literally no error checking on this right now, but that shouldn't be a problem if you simply follow the instructions
 
