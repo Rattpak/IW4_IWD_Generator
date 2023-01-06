@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <sstream>
 #include "zip.h"
+#include "minizip/zip.h"
 #include "minizip/unzip.h"
 
 using std::string;
@@ -21,8 +22,10 @@ std::vector<string> removeImagesPrefix(const std::vector<string>&);
 string removeImagesPrefix(string);
 void createFolderExists(const string&);
 string getCurrentModel(string);
+void create_zip_archive(string);
 
 string currentModel;
+string spdataDir;
 
 int main() {
     bool cnt = true;
@@ -34,8 +37,10 @@ int main() {
     getline(std::cin, root);
     root = removeDoubleQuotes(root);
     string dest = root + "/custom_iwd/";
+    spdataDir = root + "/spdata/";
+    createFolderExists(spdataDir);
     createFolderExists(dest);
-    while (cnt) {
+    while (cnt) {//doesnt do anything rn
         std::cout << "Drag the ripped xmodel folder onto window or type path below." << std::endl;
         getline(std::cin, in);
         in = removeDoubleQuotes(in);
@@ -58,8 +63,6 @@ int main() {
             }
         }
         closedir(dir);
-
-        //ask if another xmodel is needed
 
         std::cout << "Found " << img_names.size() << " images" << std::endl;
         //std::cout << "searching " << root + "/main/iw_00.iwd" << std::endl;
@@ -101,13 +104,15 @@ int main() {
         printSimilarities(img_names, iwd10, root + "/main/iw_10.iwd", dest);
         std::cout << "----------[iwd11]----------" << std::endl;
         printSimilarities(img_names, iwd11, root + "/main/iw_11.iwd", dest);
-        int u;
-        std::cin >> u;
-        if (u == 1) {
-            cnt = true;
-        }
+        //int u;
+        //std::cin >> u;
+        //if (u == 1) {
+        //    cnt = true;
+        //}
+        cnt = false;
     }
     //package iwd
+    create_zip_archive(dest + currentModel);
 }
 
 string removeDoubleQuotes(const string& str)
@@ -234,4 +239,57 @@ void createFolderExists(const string& path) {
 std::string getCurrentModel(string filepath) {
     std::size_t found = filepath.find_last_of("/\\");
     return filepath.substr(found + 1);
+}
+
+void create_zip_archive(string path) {
+    std::cout << "Generating IWD at path " << path << " for model " << currentModel << std::endl;
+    // Open the zip archive for writing
+    string zipname = spdataDir + currentModel + ".iwd";
+    zipFile zip_archive = zipOpen(zipname.c_str(), APPEND_STATUS_CREATE);
+
+    // Iterate through all files at the given path and add them to the zip archive
+    DIR* dir = opendir(path.c_str());
+    if (dir == NULL) {
+        std::cout << "Error opening directory: " << path << std::endl;
+        return;
+    }
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        string filename = entry->d_name;
+        if (filename == "." || filename == "..") {
+            continue;
+        }
+        string file_path = path + "/" + filename;
+        zip_fileinfo file_info = { 0 };
+        int zip_error = zipOpenNewFileInZip(zip_archive, ("images/" + filename).c_str(), &file_info, NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_DEFAULT_COMPRESSION);
+        if (zip_error != ZIP_OK) {
+            std::cout << "Error adding file to zip archive: " << file_path << std::endl;
+            continue;
+        }
+
+        // Read the contents of the file and write it to the zip archive
+        std::ifstream file(file_path, std::ios::binary);
+        if (!file.is_open()) {
+            std::cout << "Error opening file: " << file_path << std::endl;
+            continue;
+        }
+
+        char buffer[1024];
+        while (file.read(buffer, 1024)) {
+            zipWriteInFileInZip(zip_archive, buffer, 1024);
+        }
+
+        // Write the remaining data to the zip archive
+        int remaining = file.gcount();
+        if (remaining > 0) {
+            zipWriteInFileInZip(zip_archive, buffer, remaining);
+        }
+
+        zipCloseFileInZip(zip_archive);
+    }
+
+    closedir(dir);
+
+    // Close the zip archive
+    zipClose(zip_archive, NULL);
 }
