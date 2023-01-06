@@ -5,11 +5,13 @@
 #include <dirent.h>
 #include <unordered_set>
 #include <algorithm>
+#include <filesystem>
 #include <sstream>
 #include "zip.h"
 #include "minizip/unzip.h"
 
 using std::string;
+namespace fs = std::filesystem;
 
 std::vector<string> iwdFileSearch(string);
 string removeDoubleQuotes(const string&);
@@ -17,6 +19,10 @@ string toIWI(string);
 void printSimilarities(std::vector<string>, std::vector<string>, string, string&);
 std::vector<string> removeImagesPrefix(const std::vector<string>&);
 string removeImagesPrefix(string);
+void createFolderExists(const string&);
+string getCurrentModel(string);
+
+string currentModel;
 
 int main() {
     bool cnt = true;
@@ -28,10 +34,12 @@ int main() {
     getline(std::cin, root);
     root = removeDoubleQuotes(root);
     string dest = root + "/custom_iwd/";
+    createFolderExists(dest);
     while (cnt) {
         std::cout << "Drag the ripped xmodel folder onto window or type path below." << std::endl;
         getline(std::cin, in);
         in = removeDoubleQuotes(in);
+        currentModel = getCurrentModel(in);
         std::cout << root << "\n" << in << std::endl;
         //do main operations
         string imgdir = in + "/_images/";
@@ -93,7 +101,6 @@ int main() {
         printSimilarities(img_names, iwd10, root + "/main/iw_10.iwd", dest);
         std::cout << "----------[iwd11]----------" << std::endl;
         printSimilarities(img_names, iwd11, root + "/main/iw_11.iwd", dest);
-
         int u;
         std::cin >> u;
         if (u == 1) {
@@ -177,7 +184,9 @@ void printSimilarities(std::vector<string> v1, std::vector<string> v2, string iw
                     while ((bytes_read = zip_fread(f, buffer, 1024)) > 0) {
                         buf.write(buffer, bytes_read);
                     }
-                    string t = out + s;
+                    string t = out +currentModel;
+                    createFolderExists(t);
+                    t = t + "/" + s;
                     //std::cout << "t = " << t << std::endl;
                     std::ofstream out(t, std::ios::binary);
                     out << buf.rdbuf();
@@ -209,4 +218,20 @@ string removeImagesPrefix(string str) {
         str.erase(0, 7);
     }
     return str;
+}
+
+void createFolderExists(const string& path) {
+    if (!fs::exists(path)) {
+        try {
+            fs::create_directory(path);
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error creating directory: " << e.what() << '\n';
+        }
+    }
+}
+
+std::string getCurrentModel(string filepath) {
+    std::size_t found = filepath.find_last_of("/\\");
+    return filepath.substr(found + 1);
 }
