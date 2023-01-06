@@ -243,11 +243,9 @@ std::string getCurrentModel(string filepath) {
 
 void create_zip_archive(string path) {
     std::cout << "Generating IWD at path " << path << " for model " << currentModel << std::endl;
-    // Open the zip archive for writing
     string zipname = spdataDir + currentModel + ".iwd";
     zipFile zip_archive = zipOpen(zipname.c_str(), APPEND_STATUS_CREATE);
 
-    // Iterate through all files at the given path and add them to the zip archive
     DIR* dir = opendir(path.c_str());
     if (dir == NULL) {
         std::cout << "Error opening directory: " << path << std::endl;
@@ -266,8 +264,6 @@ void create_zip_archive(string path) {
             std::cout << "Error adding file to zip archive: " << file_path << std::endl;
             continue;
         }
-
-        // Read the contents of the file and write it to the zip archive
         std::ifstream file(file_path, std::ios::binary);
         if (!file.is_open()) {
             std::cout << "Error opening file: " << file_path << std::endl;
@@ -279,7 +275,7 @@ void create_zip_archive(string path) {
             zipWriteInFileInZip(zip_archive, buffer, 1024);
         }
 
-        // Write the remaining data to the zip archive
+        //write remaining data to zip archive
         int remaining = file.gcount();
         if (remaining > 0) {
             zipWriteInFileInZip(zip_archive, buffer, remaining);
@@ -287,9 +283,6 @@ void create_zip_archive(string path) {
 
         zipCloseFileInZip(zip_archive);
     }
-
     closedir(dir);
-
-    // Close the zip archive
     zipClose(zip_archive, NULL);
 }
