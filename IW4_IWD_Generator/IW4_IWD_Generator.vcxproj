@@ -130,6 +130,15 @@
   <ItemGroup>
     <ClCompile Include="IW4_IWD_Generator.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource1.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="IW4_IWD_Generator.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Z:\videos\euph\tutorials\mw2 model cross level porting\icon.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
