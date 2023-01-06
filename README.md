@@ -8,6 +8,6 @@ Please be aware that this program is in very early access and has limited error 
 
 ## How To Use
   1. Use Greyhound to find the model you want, ensuring that the "Use Global Image Folder" option is unchecked in the settings. Click "Export" to export the model to disk.
-  2. Open the IW4 IWD Generator and input or drag your MW2 root folder into the program.
-  3. Drag the folder of the exported Greyhound model onto the program.
+  2. Open the IW4 IWD Generator and input or drag your MW2 root folder into the program. Hit enter.
+  3. Drag the folder of the exported Greyhound model onto the program. Hit Enter.
   4. The IWD file will be automatically generated and placed in the spdata folder.
