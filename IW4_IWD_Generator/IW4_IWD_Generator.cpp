@@ -104,6 +104,7 @@ int main() {
         printSimilarities(img_names, iwd10, root + "/main/iw_10.iwd", dest);
         std::cout << "----------[iwd11]----------" << std::endl;
         printSimilarities(img_names, iwd11, root + "/main/iw_11.iwd", dest);
+        std::cout << "\n\n\n";
         //int u;
         //std::cin >> u;
         //if (u == 1) {
@@ -113,6 +114,8 @@ int main() {
     }
     //package iwd
     create_zip_archive(dest + currentModel);
+    std::cout << "\n\n\n";
+    system("pause");
 }
 
 string removeDoubleQuotes(const string& str)
@@ -242,8 +245,9 @@ std::string getCurrentModel(string filepath) {
 }
 
 void create_zip_archive(string path) {
-    std::cout << "Generating IWD at path " << path << " for model " << currentModel << std::endl;
+    
     string zipname = spdataDir + currentModel + ".iwd";
+    std::cout << "Generating IWD...\n\nIWD INFO: " << zipname << std::endl;
     zipFile zip_archive = zipOpen(zipname.c_str(), APPEND_STATUS_CREATE);
 
     DIR* dir = opendir(path.c_str());
