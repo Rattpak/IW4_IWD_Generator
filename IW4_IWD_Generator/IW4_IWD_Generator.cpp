@@ -5,8 +5,8 @@
 #include <dirent.h>
 #include <unordered_set>
 #include <algorithm>
-
-//#include "zlib.h"
+#include <sstream>
+#include "zip.h"
 #include "minizip/unzip.h"
 
 using std::string;
@@ -14,18 +14,20 @@ using std::string;
 std::vector<string> iwdFileSearch(string);
 string removeDoubleQuotes(const string&);
 string toIWI(string);
-void printSimilarities(std::vector<string>, std::vector<string>);
+void printSimilarities(std::vector<string>, std::vector<string>, string, string&);
 std::vector<string> removeImagesPrefix(const std::vector<string>&);
+string removeImagesPrefix(string);
 
 int main() {
     bool cnt = true;
     std::vector<string> img_names;
     string in = "";
     string root = "";
+
     std::cout << "Type or Drag your MW2 Root folder below" << std::endl;
     getline(std::cin, root);
     root = removeDoubleQuotes(root);
-
+    string dest = root + "/custom_iwd/";
     while (cnt) {
         std::cout << "Drag the ripped xmodel folder onto window or type path below." << std::endl;
         getline(std::cin, in);
@@ -50,7 +52,7 @@ int main() {
         closedir(dir);
 
         //ask if another xmodel is needed
-        
+
         std::cout << "Found " << img_names.size() << " images" << std::endl;
         //std::cout << "searching " << root + "/main/iw_00.iwd" << std::endl;
         std::vector<string> iwd00 = iwdFileSearch(root + "/main/iw_00.iwd");
@@ -68,29 +70,29 @@ int main() {
         std::cout << "Loaded all MW2 IWD Files...\n\n" << std::endl;
 
         std::cout << "----------[iwd00]----------" << std::endl;
-        printSimilarities(img_names, iwd00);
+        printSimilarities(img_names, iwd00, root + "/main/iw_00.iwd", dest);
         std::cout << "----------[iwd01]----------" << std::endl;
-        printSimilarities(img_names, iwd01);
+        printSimilarities(img_names, iwd01, root + "/main/iw_01.iwd", dest);
         std::cout << "----------[iwd02]----------" << std::endl;
-        printSimilarities(img_names, iwd02);
+        printSimilarities(img_names, iwd02, root + "/main/iw_02.iwd", dest);
         std::cout << "----------[iwd03]----------" << std::endl;
-        printSimilarities(img_names, iwd03);
+        printSimilarities(img_names, iwd03, root + "/main/iw_03.iwd", dest);
         std::cout << "----------[iwd04]----------" << std::endl;
-        printSimilarities(img_names, iwd04);
+        printSimilarities(img_names, iwd04, root + "/main/iw_04.iwd", dest);
         std::cout << "----------[iwd05]----------" << std::endl;
-        printSimilarities(img_names, iwd05);
+        printSimilarities(img_names, iwd05, root + "/main/iw_05.iwd", dest);
         std::cout << "----------[iwd06]----------" << std::endl;
-        printSimilarities(img_names, iwd06);
+        printSimilarities(img_names, iwd06, root + "/main/iw_06.iwd", dest);
         std::cout << "----------[iwd07]----------" << std::endl;
-        printSimilarities(img_names, iwd07);
+        printSimilarities(img_names, iwd07, root + "/main/iw_07.iwd", dest);
         std::cout << "----------[iwd08]----------" << std::endl;
-        printSimilarities(img_names, iwd08);
+        printSimilarities(img_names, iwd08, root + "/main/iw_08.iwd", dest);
         std::cout << "----------[iwd09]----------" << std::endl;
-        printSimilarities(img_names, iwd09);
+        printSimilarities(img_names, iwd09, root + "/main/iw_09.iwd", dest);
         std::cout << "----------[iwd10]----------" << std::endl;
-        printSimilarities(img_names, iwd10);
+        printSimilarities(img_names, iwd10, root + "/main/iw_10.iwd", dest);
         std::cout << "----------[iwd11]----------" << std::endl;
-        printSimilarities(img_names, iwd11);
+        printSimilarities(img_names, iwd11, root + "/main/iw_11.iwd", dest);
 
         int u;
         std::cin >> u;
@@ -146,12 +148,46 @@ std::vector<string> iwdFileSearch(string path) {
     return removeImagesPrefix(v);
 }
 
-void printSimilarities(std::vector<string> v1, std::vector<string> v2) {
+void printSimilarities(std::vector<string> v1, std::vector<string> v2, string iwd, string& out) {
+    zip* z = zip_open(iwd.c_str(), 0, nullptr);
+    if (z == nullptr) {
+        std::cerr << "Error opening zip file: " << iwd << std::endl;
+        return;
+    }
     for (const string& s : v1) {
         if (find(v2.begin(), v2.end(), s) != v2.end()) {
             std::cout << s << std::endl;
+            for (int i = 0; i < zip_get_num_files(z); i++) {
+                zip_file* f = zip_fopen_index(z, i, 0);
+                if (f == nullptr) {
+                    std::cerr << "Error opening zip file entry: " << i << std::endl;
+                    continue;
+                }
+                const char* name = zip_get_name(z, i, 0);
+                if (name == nullptr) {
+                    std::cerr << "Error getting zip file entry name: " << i << std::endl;
+                    zip_fclose(f);
+                    continue;
+                }
+                if (s == removeImagesPrefix(name)) {
+                    //std::cout << s << " == " << removeImagesPrefix(name) << std::endl;
+                    std::stringstream buf;
+                    char buffer[1024];
+                    int bytes_read;
+                    while ((bytes_read = zip_fread(f, buffer, 1024)) > 0) {
+                        buf.write(buffer, bytes_read);
+                    }
+                    string t = out + s;
+                    //std::cout << "t = " << t << std::endl;
+                    std::ofstream out(t, std::ios::binary);
+                    out << buf.rdbuf();
+                    out.close();
+                }
+                zip_fclose(f);
+            }
         }
     }
+    zip_close(z);
 }
 
 std::vector<string> removeImagesPrefix(const std::vector<string>& strings) {
@@ -166,4 +202,11 @@ std::vector<string> removeImagesPrefix(const std::vector<string>& strings) {
         }
     }
     return result;
+}
+
+string removeImagesPrefix(string str) {
+    if (str.find("images/") == 0) {
+        str.erase(0, 7);
+    }
+    return str;
 }
