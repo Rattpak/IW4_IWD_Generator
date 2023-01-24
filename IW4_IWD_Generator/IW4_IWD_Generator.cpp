@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <sstream>
+#include "color.hpp"
 #include "zip.h"
 #include "minizip/zip.h"
 #include "minizip/unzip.h"
@@ -14,6 +15,9 @@
 using std::string;
 namespace fs = std::filesystem;
 
+bool configExist();
+std::string loadData();
+void storeData(std::string);
 std::vector<string> iwdFileSearch(string);
 string removeDoubleQuotes(const string&);
 string toIWI(string);
@@ -33,9 +37,17 @@ int main() {
     string in = "";
     string root = "";
 
-    std::cout << "Type or Drag your MW2 Root folder below" << std::endl;
-    getline(std::cin, root);
-    root = removeDoubleQuotes(root);
+    if (configExist()) {
+        root = loadData();
+        std::cout << "Loaded MW2 Root folder at: " << dye::aqua(root) << std::endl;
+    }
+    else {
+        std::cout << "Type or Drag your MW2 Root folder below" << std::endl;
+        getline(std::cin, root);
+        root = removeDoubleQuotes(root);
+        storeData(root);
+    }
+
     string dest = root + "/custom_iwd/";
     spdataDir = root + "/spdata/";
     createFolderExists(spdataDir);
@@ -45,7 +57,7 @@ int main() {
         getline(std::cin, in);
         in = removeDoubleQuotes(in);
         currentModel = getCurrentModel(in);
-        std::cout << root << "\n" << in << std::endl;
+        
         //do main operations
         string imgdir = in + "/_images/";
         DIR* dir = opendir(imgdir.c_str());
@@ -289,4 +301,58 @@ void create_zip_archive(string path) {
     }
     closedir(dir);
     zipClose(zip_archive, NULL);
+}
+
+std::string loadData() {
+    char* appdata;
+    size_t len;
+    _dupenv_s(&appdata, &len, "APPDATA");
+    std::string filepath(appdata);
+    filepath += "\\rattpak\\iw4_iwd_gen\\config.cfg";
+    free(appdata);
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        std::cout << "config.cfg not found. Creating new file" << std::endl;
+        std::ofstream newFile(filepath);
+        newFile.close();
+        return "";
+    }
+    std::string data((std::istreambuf_iterator<char>(file)),
+        std::istreambuf_iterator<char>());
+    file.close();
+    return data;
+}
+
+void storeData(std::string data) {
+    char* appdata;
+    size_t len;
+    _dupenv_s(&appdata, &len, "APPDATA");
+    std::string filepath(appdata);
+    filepath += "\\rattpak\\iw4_iwd_gen\\config.cfg";
+    free(appdata);
+    std::ofstream file(filepath);
+    if (!file.is_open()) {
+        std::cout << "config.cfg not found. Creating new file" << std::endl;
+        std::ofstream newFile(filepath);
+        newFile.close();
+    }
+    file << data;
+    file.close();
+}
+
+bool configExist() {
+    char* appdata;
+    size_t len;
+    _dupenv_s(&appdata, &len, "APPDATA");
+    std::string filepath(appdata);
+    filepath += "\\rattpak\\iw4_iwd_gen\\config.cfg";
+    free(appdata);
+    std::ifstream file(filepath);
+    if (file.is_open()) {
+        file.close();
+        return true;
+    }
+    else {
+        return false;
+    }
 }
