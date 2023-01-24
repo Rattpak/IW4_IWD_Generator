@@ -11,11 +11,13 @@
 #include "zip.h"
 #include "minizip/zip.h"
 #include "minizip/unzip.h"
+#include <regex>
 
 using std::string;
 namespace fs = std::filesystem;
 
 bool configExist();
+bool isValidFileName(const string&);
 std::string loadData();
 void storeData(std::string);
 std::vector<string> iwdFileSearch(string);
@@ -52,12 +54,23 @@ int main() {
     spdataDir = root + "/spdata/";
     createFolderExists(spdataDir);
     createFolderExists(dest);
-    while (cnt) {//doesnt do anything rn
+    
+    short convMode = 0;
+
+    std::cout << dye::light_green("Choose Operation:") << std::endl;
+    std::cout << dye::light_green("\t0 - Single Conversion") << std::endl;
+    std::cout << dye::light_green("\t1 - Batch Conversion") << std::endl;
+    std::cout << dye::yellow("> ");
+    std::cin >> convMode;
+
+    std::vector<string> batchItems;
+
+    if (convMode == 0) {
         std::cout << "Drag the ripped xmodel folder onto window or type path below." << std::endl;
+        std::cin.ignore();
         getline(std::cin, in);
         in = removeDoubleQuotes(in);
         currentModel = getCurrentModel(in);
-        
         //do main operations
         string imgdir = in + "/_images/";
         DIR* dir = opendir(imgdir.c_str());
@@ -75,57 +88,104 @@ int main() {
             }
         }
         closedir(dir);
-
-        std::cout << "Found " << img_names.size() << " images" << std::endl;
-        //std::cout << "searching " << root + "/main/iw_00.iwd" << std::endl;
-        std::vector<string> iwd00 = iwdFileSearch(root + "/main/iw_00.iwd");
-        std::vector<string> iwd01 = iwdFileSearch(root + "/main/iw_01.iwd");
-        std::vector<string> iwd02 = iwdFileSearch(root + "/main/iw_02.iwd");
-        std::vector<string> iwd03 = iwdFileSearch(root + "/main/iw_03.iwd");
-        std::vector<string> iwd04 = iwdFileSearch(root + "/main/iw_04.iwd");
-        std::vector<string> iwd05 = iwdFileSearch(root + "/main/iw_05.iwd");
-        std::vector<string> iwd06 = iwdFileSearch(root + "/main/iw_06.iwd");
-        std::vector<string> iwd07 = iwdFileSearch(root + "/main/iw_07.iwd");
-        std::vector<string> iwd08 = iwdFileSearch(root + "/main/iw_08.iwd");
-        std::vector<string> iwd09 = iwdFileSearch(root + "/main/iw_09.iwd");
-        std::vector<string> iwd10 = iwdFileSearch(root + "/main/iw_10.iwd");
-        std::vector<string> iwd11 = iwdFileSearch(root + "/main/iw_11.iwd");
-        std::cout << "Loaded all MW2 IWD Files...\n\n" << std::endl;
-
-        std::cout << "----------[iwd00]----------" << std::endl;
-        printSimilarities(img_names, iwd00, root + "/main/iw_00.iwd", dest);
-        std::cout << "----------[iwd01]----------" << std::endl;
-        printSimilarities(img_names, iwd01, root + "/main/iw_01.iwd", dest);
-        std::cout << "----------[iwd02]----------" << std::endl;
-        printSimilarities(img_names, iwd02, root + "/main/iw_02.iwd", dest);
-        std::cout << "----------[iwd03]----------" << std::endl;
-        printSimilarities(img_names, iwd03, root + "/main/iw_03.iwd", dest);
-        std::cout << "----------[iwd04]----------" << std::endl;
-        printSimilarities(img_names, iwd04, root + "/main/iw_04.iwd", dest);
-        std::cout << "----------[iwd05]----------" << std::endl;
-        printSimilarities(img_names, iwd05, root + "/main/iw_05.iwd", dest);
-        std::cout << "----------[iwd06]----------" << std::endl;
-        printSimilarities(img_names, iwd06, root + "/main/iw_06.iwd", dest);
-        std::cout << "----------[iwd07]----------" << std::endl;
-        printSimilarities(img_names, iwd07, root + "/main/iw_07.iwd", dest);
-        std::cout << "----------[iwd08]----------" << std::endl;
-        printSimilarities(img_names, iwd08, root + "/main/iw_08.iwd", dest);
-        std::cout << "----------[iwd09]----------" << std::endl;
-        printSimilarities(img_names, iwd09, root + "/main/iw_09.iwd", dest);
-        std::cout << "----------[iwd10]----------" << std::endl;
-        printSimilarities(img_names, iwd10, root + "/main/iw_10.iwd", dest);
-        std::cout << "----------[iwd11]----------" << std::endl;
-        printSimilarities(img_names, iwd11, root + "/main/iw_11.iwd", dest);
-        std::cout << "\n\n\n";
-        //int u;
-        //std::cin >> u;
-        //if (u == 1) {
-        //    cnt = true;
-        //}
-        cnt = false;
     }
+    else {
+        std::cout << "Drag the ripped xmodel folder onto window or type path below." << std::endl;
+        std::cout << dye::aqua("For batch conversions, press ENTER after each input. Hit ENTER again when done") << std::endl;
+        string tPath = "";
+        std::cin.ignore();
+        while (1) {
+            getline(std::cin, tPath);
+            tPath = removeDoubleQuotes(tPath);
+            if (tPath.empty()) { //exit batch input
+                std::cout << dye::light_green("\nBatch Input Complete...") << std::endl;
+                break;
+            }
+            batchItems.push_back(tPath);
+        }
+        string fname = "default";
+        std::cout << dye::aqua("Enter a name for the IWD file") << std::endl;
+        getline(std::cin, fname);
+        if (fname.empty() || !isValidFileName(fname)) {
+            std::cout << dye::yellow("Invalid name; Generating using name 'default'") << std::endl;
+            fname = "default/";
+            currentModel = "default";//file name based off this and im not rewriting
+        }
+        else {
+            currentModel = fname;
+        }
+        std::cout << dye::aqua("Preparing conversion on ") << dye::aqua(batchItems.size()) << dye::aqua(" models") << std::endl;
+
+        //do main operations
+        for (int i = 0; i < batchItems.size(); i++) {
+            string imgdir = batchItems[i] + "/_images/";
+            DIR* dir = opendir(imgdir.c_str());
+            if (dir == nullptr) {
+                std::cout << "Could not open directory" << std::endl;
+                return 1;
+            }
+            struct dirent* ent;
+            while ((ent = readdir(dir)) != nullptr) {
+                if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, "..")) {
+                }
+                else {
+                    string fileName = ent->d_name;
+                    img_names.push_back(toIWI(fileName));
+                }
+            }
+            closedir(dir);
+        }
+
+    }
+      
+    
+    
+
+    std::cout << "Found " << img_names.size() << " images" << std::endl;
+    std::vector<string> iwd00 = iwdFileSearch(root + "/main/iw_00.iwd");
+    std::vector<string> iwd01 = iwdFileSearch(root + "/main/iw_01.iwd");
+    std::vector<string> iwd02 = iwdFileSearch(root + "/main/iw_02.iwd");
+    std::vector<string> iwd03 = iwdFileSearch(root + "/main/iw_03.iwd");
+    std::vector<string> iwd04 = iwdFileSearch(root + "/main/iw_04.iwd");
+    std::vector<string> iwd05 = iwdFileSearch(root + "/main/iw_05.iwd");
+    std::vector<string> iwd06 = iwdFileSearch(root + "/main/iw_06.iwd");
+    std::vector<string> iwd07 = iwdFileSearch(root + "/main/iw_07.iwd");
+    std::vector<string> iwd08 = iwdFileSearch(root + "/main/iw_08.iwd");
+    std::vector<string> iwd09 = iwdFileSearch(root + "/main/iw_09.iwd");
+    std::vector<string> iwd10 = iwdFileSearch(root + "/main/iw_10.iwd");
+    std::vector<string> iwd11 = iwdFileSearch(root + "/main/iw_11.iwd");
+    std::cout << "Loaded all MW2 IWD Files...\n\n" << std::endl;
+
+    std::cout << dye::on_light_aqua("----------[iwd00]----------") << std::endl;
+    printSimilarities(img_names, iwd00, root + "/main/iw_00.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd01]----------") << std::endl;
+    printSimilarities(img_names, iwd01, root + "/main/iw_01.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd02]----------") << std::endl;
+    printSimilarities(img_names, iwd02, root + "/main/iw_02.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd03]----------") << std::endl;
+    printSimilarities(img_names, iwd03, root + "/main/iw_03.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd04]----------") << std::endl;
+    printSimilarities(img_names, iwd04, root + "/main/iw_04.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd05]----------") << std::endl;
+    printSimilarities(img_names, iwd05, root + "/main/iw_05.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd06]----------") << std::endl;
+    printSimilarities(img_names, iwd06, root + "/main/iw_06.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd07]----------") << std::endl;
+    printSimilarities(img_names, iwd07, root + "/main/iw_07.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd08]----------") << std::endl;
+    printSimilarities(img_names, iwd08, root + "/main/iw_08.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd09]----------") << std::endl;
+    printSimilarities(img_names, iwd09, root + "/main/iw_09.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd10]----------") << std::endl;
+    printSimilarities(img_names, iwd10, root + "/main/iw_10.iwd", dest);
+    std::cout << dye::on_light_aqua("----------[iwd11]----------") << std::endl;
+    printSimilarities(img_names, iwd11, root + "/main/iw_11.iwd", dest);
+    std::cout << "\n\n\n";  
     //package iwd
+  
     create_zip_archive(dest + currentModel);
+
+    
     std::cout << "\n\n\n";
     system("pause");
 }
@@ -178,7 +238,7 @@ std::vector<string> iwdFileSearch(string path) {
 void printSimilarities(std::vector<string> v1, std::vector<string> v2, string iwd, string& out) {
     zip* z = zip_open(iwd.c_str(), 0, nullptr);
     if (z == nullptr) {
-        std::cerr << "Error opening zip file: " << iwd << std::endl;
+        std::cerr << dye::red("Error opening zip file: ") << iwd << std::endl;
         return;
     }
     for (const string& s : v1) {
@@ -187,12 +247,12 @@ void printSimilarities(std::vector<string> v1, std::vector<string> v2, string iw
             for (int i = 0; i < zip_get_num_files(z); i++) {
                 zip_file* f = zip_fopen_index(z, i, 0);
                 if (f == nullptr) {
-                    std::cerr << "Error opening zip file entry: " << i << std::endl;
+                    std::cerr << dye::red("Error opening zip file entry: ") << i << std::endl;
                     continue;
                 }
                 const char* name = zip_get_name(z, i, 0);
                 if (name == nullptr) {
-                    std::cerr << "Error getting zip file entry name: " << i << std::endl;
+                    std::cerr << dye::red("Error getting zip file entry name: ") << i << std::endl;
                     zip_fclose(f);
                     continue;
                 }
@@ -246,7 +306,7 @@ void createFolderExists(const string& path) {
             fs::create_directory(path);
         }
         catch (const std::exception& e) {
-            std::cerr << "Error creating directory: " << e.what() << '\n';
+            std::cerr << dye::red("Error creating directory: ") << e.what() << '\n';
         }
     }
 }
@@ -257,14 +317,13 @@ std::string getCurrentModel(string filepath) {
 }
 
 void create_zip_archive(string path) {
-    
     string zipname = spdataDir + currentModel + ".iwd";
     std::cout << "Generating IWD...\n\nIWD INFO: " << zipname << std::endl;
     zipFile zip_archive = zipOpen(zipname.c_str(), APPEND_STATUS_CREATE);
 
     DIR* dir = opendir(path.c_str());
     if (dir == NULL) {
-        std::cout << "Error opening directory: " << path << std::endl;
+        std::cout << dye::red("Error opening directory: ") << dye::red(path) << std::endl;
         return;
     }
     struct dirent* entry;
@@ -304,17 +363,18 @@ void create_zip_archive(string path) {
 }
 
 std::string loadData() {
-    char* appdata;
+    char* appdata = nullptr;
     size_t len;
-    _dupenv_s(&appdata, &len, "APPDATA");
-    std::string filepath(appdata);
-    filepath += "\\rattpak\\iw4_iwd_gen\\config.cfg";
-    free(appdata);
+    std::string filepath;
+    if (_dupenv_s(&appdata, &len, "APPDATA") == 0) {
+        filepath = std::string(appdata) + "\\rattpak\\iw4_iwd_gen\\config.cfg";
+        free(appdata);
+    }
+    else {
+        throw std::runtime_error("Error getting APPDATA environment variable");
+    }
     std::ifstream file(filepath);
     if (!file.is_open()) {
-        std::cout << "config.cfg not found. Creating new file" << std::endl;
-        std::ofstream newFile(filepath);
-        newFile.close();
         return "";
     }
     std::string data((std::istreambuf_iterator<char>(file)),
@@ -324,35 +384,54 @@ std::string loadData() {
 }
 
 void storeData(std::string data) {
-    char* appdata;
+    char* appdata = nullptr;
     size_t len;
-    _dupenv_s(&appdata, &len, "APPDATA");
-    std::string filepath(appdata);
-    filepath += "\\rattpak\\iw4_iwd_gen\\config.cfg";
-    free(appdata);
-    std::ofstream file(filepath);
+    std::string filepath;
+    if (_dupenv_s(&appdata, &len, "APPDATA") == 0) {
+        filepath = std::string(appdata) + "\\rattpak\\iw4_iwd_gen\\config.cfg";
+        free(appdata);
+    }
+    else {
+        throw std::runtime_error("Error getting APPDATA environment variable");
+    }
+    std::filesystem::path filePath(filepath);
+    std::filesystem::create_directories(filePath.parent_path());
+    std::ofstream file(filepath, std::ios::out | std::ios::trunc);
     if (!file.is_open()) {
-        std::cout << "config.cfg not found. Creating new file" << std::endl;
-        std::ofstream newFile(filepath);
-        newFile.close();
+        std::cerr << "Error creating config.cfg file" << std::endl;
     }
     file << data;
     file.close();
+    if (file.fail()) {
+        std::cerr << "Error writing data to config.cfg" << std::endl;
+    }
 }
 
 bool configExist() {
-    char* appdata;
+    char* appdata = nullptr;
     size_t len;
-    _dupenv_s(&appdata, &len, "APPDATA");
-    std::string filepath(appdata);
-    filepath += "\\rattpak\\iw4_iwd_gen\\config.cfg";
-    free(appdata);
+    std::string filepath;
+    if (_dupenv_s(&appdata, &len, "APPDATA") == 0) {
+        filepath = std::string(appdata) + "\\rattpak\\iw4_iwd_gen\\config.cfg";
+        free(appdata);
+    }
+    else {
+        throw std::runtime_error("Error getting APPDATA environment variable");
+    }
     std::ifstream file(filepath);
-    if (file.is_open()) {
+    if (file.good()) {
         file.close();
         return true;
     }
     else {
         return false;
     }
+}
+
+
+bool isValidFileName(const string& fileName) {
+    // Define a regular expression that matches any forbidden characters
+    std::regex forbiddenChars("[\\\\/:*?\"<>|]");
+    // Check if the file name contains any of the forbidden characters
+    return !std::regex_search(fileName, forbiddenChars);
 }
