@@ -1,3 +1,4 @@
+![](https://drive.google.com/uc?id=1BDTuQkTe2blYctxnx92rGol6EaFvOgVl)
 ## IW4_IWD_Generator
 This is a program that simplifies the process of porting models between levels in IW4. This tool eliminates the need for manually extracting IWI files and repacking them into an IWD file. All generated IWD files will be stored in the ```spdata``` folder, while all extracted IWI files can be found in a folder called ```custom_iwd```. The ```custom_iwd``` folder is optional and not required for standard usage, but it can be useful if you wish to modify the IWI files before packaging them into an IWD.
 
