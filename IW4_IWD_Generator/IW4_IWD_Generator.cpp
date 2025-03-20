@@ -56,7 +56,6 @@ int main() {
     createFolderExists(dest);
     
     short convMode = 0;
-
     std::cout << dye::light_green("Choose Operation:") << std::endl;
     std::cout << dye::light_green("\t0 - Single Conversion") << std::endl;
     std::cout << dye::light_green("\t1 - Batch Conversion") << std::endl;
